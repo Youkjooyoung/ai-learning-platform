@@ -1,0 +1,39 @@
+# dependencies
+node_modules/
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# build outputs
+.next/
+out/
+dist/
+build/
+coverage/
+htmlcov/
+*.tsbuildinfo
+
+# environment
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# local data
+*.db
+*.sqlite
+*.sqlite3
+postgres-data/
+redis-data/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+Thumbs.db
+.DS_Store
