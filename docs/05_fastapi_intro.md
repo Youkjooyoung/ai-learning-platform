@@ -28,4 +28,5 @@ FastAPI는 Python으로 API 서버를 만들기 위한 웹 프레임워크다. �
 - FastAPI Features: https://fastapi.tiangolo.com/features/
 - FastAPI SQL Databases: https://fastapi.tiangolo.com/tutorial/sql-databases/
 - OpenAI Text Generation: https://platform.openai.com/docs/guides/text
-
+- OpenAI Models, checked 2026-05-25: https://platform.openai.com/docs/models/gpt-5.2
+- OpenAI Latest Model Guide, checked 2026-05-25: https://platform.openai.com/docs/guides/latest-model

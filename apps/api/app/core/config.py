@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-5.2"
     web_origin: str = "http://localhost:3000"
 
+    @property
+    def web_origins(self) -> list[str]:
+        return [origin.strip() for origin in self.web_origin.split(",") if origin.strip()]
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 
@@ -25,4 +29,3 @@ def get_settings() -> Settings:
 
 
 settings = get_settings()
-

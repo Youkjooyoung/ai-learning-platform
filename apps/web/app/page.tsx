@@ -1,7 +1,8 @@
 "use client";
 
 import { FileText, LogOut, Plus, Save, Search, Sparkles, Trash2 } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import type { FormEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { StatusPill } from "@/components/status-pill";
 import {
@@ -66,19 +67,19 @@ export default function Home() {
     void loadWorkspace(saved);
   }, []);
 
-  async function run(action: () => Promise<void>) {
+  async function run(action: () => Promise<void>, fallback = "요청 실패") {
     setBusy(true);
     setMessage("");
     try {
       await action();
     } catch (error) {
-      setMessage(error instanceof Error ? "요청 실패" : "오류");
+      setMessage(error instanceof Error ? fallback : "오류");
     } finally {
       setBusy(false);
     }
   }
 
-  async function loadWorkspace(nextToken = token, nextQuery = query) {
+  async function loadWorkspace(nextToken = token, nextQuery = query, preferredId = selectedId) {
     const [profile, nextNotes, nextSummary] = await Promise.all([
       me(nextToken),
       listNotes(nextToken, nextQuery),
@@ -88,7 +89,7 @@ export default function Home() {
     setNotes(nextNotes);
     setSummary(nextSummary);
 
-    const selected = nextNotes.find((note) => note.id === selectedId) ?? nextNotes[0] ?? emptyDraft;
+    const selected = nextNotes.find((note) => note.id === preferredId) ?? nextNotes[0] ?? emptyDraft;
     setSelectedId(selected.id);
     setDraft(selected);
   }
@@ -96,16 +97,25 @@ export default function Home() {
   async function submitAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     await run(async () => {
-      try {
-        await register(email, password);
-      } catch {
-        // Existing accounts continue to login.
+      const trimmedEmail = email.trim();
+      if (!trimmedEmail || password.length < 8) {
+        setMessage("입력 확인");
+        return;
       }
-      const response = await login(email, password);
+
+      try {
+        await register(trimmedEmail, password);
+      } catch (error) {
+        const text = error instanceof Error ? error.message : "";
+        if (!text.includes("409")) {
+          throw error;
+        }
+      }
+      const response = await login(trimmedEmail, password);
       window.localStorage.setItem("ai-learning-token", response.access_token);
       setToken(response.access_token);
       await loadWorkspace(response.access_token);
-    });
+    }, "로그인 실패");
   }
 
   function logout() {
@@ -129,13 +139,13 @@ export default function Home() {
     await run(async () => {
       const note = await createNote(token, {
         title: "새 노트",
-        content: " ",
+        content: "내용",
         status: "draft",
         tags: []
       });
       setSelectedId(note.id);
       setDraft(note);
-      await loadWorkspace(token);
+      await loadWorkspace(token, query, note.id);
     });
   }
 
@@ -144,12 +154,12 @@ export default function Home() {
     await run(async () => {
       const saved = await updateNote(token, draft.id, {
         title: draft.title || "새 노트",
-        content: draft.content || " ",
+        content: draft.content || "내용",
         status: draft.status,
         tags: draft.tags
       });
       setDraft(saved);
-      await loadWorkspace(token);
+      await loadWorkspace(token, query, saved.id);
     });
   }
 
@@ -159,7 +169,7 @@ export default function Home() {
       await deleteNote(token, selectedId);
       setSelectedId(0);
       setDraft(emptyDraft);
-      await loadWorkspace(token);
+      await loadWorkspace(token, query, 0);
     });
   }
 
@@ -169,6 +179,9 @@ export default function Home() {
     await run(async () => {
       const nextNotes = await listNotes(token, value);
       setNotes(nextNotes);
+      const selected = nextNotes.find((note) => note.id === selectedId) ?? nextNotes[0] ?? emptyDraft;
+      setSelectedId(selected.id);
+      setDraft(selected);
     });
   }
 

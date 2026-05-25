@@ -74,7 +74,7 @@ async function request<T>(path: string, init: RequestInit = {}, token?: string):
 
   if (!response.ok) {
     const detail = await response.text();
-    throw new Error(detail || "request failed");
+    throw new Error(`${response.status} ${detail || "request failed"}`);
   }
 
   if (response.status === 204) {

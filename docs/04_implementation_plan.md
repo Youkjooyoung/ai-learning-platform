@@ -39,3 +39,8 @@
 - GitHub 레포 생성 및 push
 - Notion README 페이지 작성
 
+## Current Status
+
+- 완료: 문서 0~7단계, FastAPI API, Next.js UI, 실제 API 연결, Docker Compose 설정, CI 초안, smoke script.
+- 보류: GitHub 원격 저장소 생성 및 push. 현재 환경에는 `gh`가 없고 GitHub 커넥터에 새 저장소 생성 도구가 없다.
+- 보류: Notion 페이지 생성. 현재 Notion 커넥터는 `parent` 페이지 ID를 필수로 요구한다.

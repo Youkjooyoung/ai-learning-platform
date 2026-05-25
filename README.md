@@ -35,6 +35,25 @@ pip install -e .[dev]
 uvicorn app.main:app --reload
 ```
 
+## Verification
+
+```powershell
+npm --workspace apps/web run typecheck
+npm --workspace apps/web run build
+```
+
+```powershell
+cd apps/api
+python -m pytest
+python -m ruff check .
+```
+
+Live API smoke test:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/smoke-api.ps1
+```
+
 ## Documents
 
 - [주제 선정 사유](docs/00_topic_rationale.md)
@@ -44,4 +63,4 @@ uvicorn app.main:app --reload
 - [구현계획서](docs/04_implementation_plan.md)
 - [FastAPI 설명](docs/05_fastapi_intro.md)
 - [UI 문구 기준](docs/06_copy_guidelines.md)
-
+- [검증 기록](docs/08_verification.md)
