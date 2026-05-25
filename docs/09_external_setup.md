@@ -2,7 +2,13 @@
 
 ## GitHub
 
-현재 로컬 저장소에는 remote가 없다.
+완료일: 2026-05-25
+
+저장소:
+
+- https://github.com/Youkjooyoung/ai-learning-platform
+
+현재 로컬 저장소 remote:
 
 ```powershell
 git remote -v
@@ -20,7 +26,7 @@ C:\tmp\gh-cli\bin\gh.exe --version
 C:\tmp\gh-cli\bin\gh.exe auth login --web --git-protocol https
 ```
 
-인증 후 저장소 생성과 push:
+초기 생성에 사용한 명령:
 
 ```powershell
 C:\tmp\gh-cli\bin\gh.exe repo create Youkjooyoung/ai-learning-platform --public --source . --remote origin --push
@@ -44,4 +50,3 @@ C:\tmp\gh-cli\bin\gh.exe repo create Youkjooyoung/ai-learning-platform --public 
 - 프로젝트 Next.js: `16.2.6`
 - `npm audit --omit=dev`는 Next.js 내부 `postcss <8.5.10` 중간 등급 경고를 보고한다.
 - `npm audit fix --force`는 Next.js를 9.x로 변경하려 하므로 적용하지 않는다.
-

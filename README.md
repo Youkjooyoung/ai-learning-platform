@@ -2,6 +2,8 @@
 
 AI 학습/포트폴리오 관리 플랫폼입니다. 원본 문서는 `docs/`에서 관리하고, Notion에는 README 형식 요약 페이지를 별도로 작성합니다.
 
+Repository: https://github.com/Youkjooyoung/ai-learning-platform
+
 ## Stack
 
 - Web: Next.js, React, TypeScript

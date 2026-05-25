@@ -20,5 +20,6 @@
 
 - UI 문구는 기능 라벨 중심으로 유지한다.
 - 외부 API 키는 저장소에 커밋하지 않는다.
-- GitHub push와 Notion 페이지 생성은 외부 권한/대상 정보가 필요하다.
+- GitHub 저장소 생성과 push는 완료했다.
+- Notion 페이지 생성은 외부 parent page ID가 필요하다.
 - `npm audit --omit=dev`는 Next.js 내부 `postcss <8.5.10` 중간 등급 경고를 보고한다. `npm audit fix --force`가 Next 9.x로 변경하려 하므로 자동 수정하지 않는다.
