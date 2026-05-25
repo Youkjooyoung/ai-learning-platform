@@ -64,3 +64,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/smoke-api.ps1
 - [FastAPI 설명](docs/05_fastapi_intro.md)
 - [UI 문구 기준](docs/06_copy_guidelines.md)
 - [검증 기록](docs/08_verification.md)
+- [외부 연동 작업](docs/09_external_setup.md)
