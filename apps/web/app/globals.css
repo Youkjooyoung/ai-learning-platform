@@ -45,6 +45,34 @@ button {
   cursor: pointer;
 }
 
+button:disabled,
+input:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.auth-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+}
+
+.auth-panel {
+  display: grid;
+  width: min(100%, 360px);
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  padding: 18px;
+}
+
+.auth-brand {
+  color: var(--text);
+}
+
 .workspace {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
@@ -190,8 +218,14 @@ button {
 }
 
 .actions {
+  align-items: center;
   display: flex;
   gap: 8px;
+}
+
+.user-email {
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .icon-button {
@@ -308,6 +342,16 @@ button {
   white-space: pre-wrap;
 }
 
+.empty-text,
+.message {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.message {
+  margin: 0;
+}
+
 @media (max-width: 900px) {
   .workspace {
     grid-template-columns: 1fr;
@@ -336,4 +380,3 @@ button {
     min-height: auto;
   }
 }
-

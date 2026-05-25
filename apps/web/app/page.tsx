@@ -1,30 +1,46 @@
 "use client";
 
-import { FileText, Plus, Save, Search, Sparkles, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { FileText, LogOut, Plus, Save, Search, Sparkles, Trash2 } from "lucide-react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { StatusPill } from "@/components/status-pill";
-import { initialNotes, stats } from "@/lib/mock-data";
-import type { LearningNote } from "@/lib/types";
+import {
+  createNote,
+  createQuestions,
+  dashboardSummary,
+  deleteNote,
+  listNotes,
+  login,
+  me,
+  register,
+  summarizeNote,
+  updateNote
+} from "@/lib/api";
+import type { DashboardSummary, LearningNote, NoteStatus } from "@/lib/types";
 
-function buildSummary(note: LearningNote) {
-  return `${note.title}: ${note.content.slice(0, 90)}`;
-}
-
-function buildQuestions(note: LearningNote) {
-  return [
-    `${note.title}의 핵심 개념은 무엇인가?`,
-    "구현할 때 확인할 조건은 무엇인가?",
-    "다음에 보완할 점은 무엇인가?"
-  ];
-}
+const emptyDraft: LearningNote = {
+  id: 0,
+  title: "",
+  content: "",
+  status: "draft",
+  tags: [],
+  createdAt: "",
+  updatedAt: ""
+};
 
 export default function Home() {
-  const [notes, setNotes] = useState(initialNotes);
-  const [selectedId, setSelectedId] = useState(initialNotes[0]?.id ?? 0);
+  const [token, setToken] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [email, setEmail] = useState("user@example.com");
+  const [password, setPassword] = useState("password123");
+  const [notes, setNotes] = useState<LearningNote[]>([]);
+  const [selectedId, setSelectedId] = useState(0);
   const [query, setQuery] = useState("");
-  const [draft, setDraft] = useState(initialNotes[0]);
-  const [aiResult, setAiResult] = useState(buildSummary(initialNotes[0]));
+  const [draft, setDraft] = useState<LearningNote>(emptyDraft);
+  const [aiResult, setAiResult] = useState("");
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
 
   const filteredNotes = useMemo(() => {
     const value = query.trim().toLowerCase();
@@ -37,36 +53,165 @@ export default function Home() {
     });
   }, [notes, query]);
 
+  const statItems = [
+    { label: "노트", value: String(summary?.totalNotes ?? notes.length) },
+    { label: "태그", value: String(summary?.totalTags ?? 0) },
+    { label: "AI", value: String(summary?.aiOutputs ?? 0) }
+  ];
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem("ai-learning-token");
+    if (!saved) return;
+    setToken(saved);
+    void loadWorkspace(saved);
+  }, []);
+
+  async function run(action: () => Promise<void>) {
+    setBusy(true);
+    setMessage("");
+    try {
+      await action();
+    } catch (error) {
+      setMessage(error instanceof Error ? "요청 실패" : "오류");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function loadWorkspace(nextToken = token, nextQuery = query) {
+    const [profile, nextNotes, nextSummary] = await Promise.all([
+      me(nextToken),
+      listNotes(nextToken, nextQuery),
+      dashboardSummary(nextToken)
+    ]);
+    setUserEmail(profile.email);
+    setNotes(nextNotes);
+    setSummary(nextSummary);
+
+    const selected = nextNotes.find((note) => note.id === selectedId) ?? nextNotes[0] ?? emptyDraft;
+    setSelectedId(selected.id);
+    setDraft(selected);
+  }
+
+  async function submitAuth(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await run(async () => {
+      try {
+        await register(email, password);
+      } catch {
+        // Existing accounts continue to login.
+      }
+      const response = await login(email, password);
+      window.localStorage.setItem("ai-learning-token", response.access_token);
+      setToken(response.access_token);
+      await loadWorkspace(response.access_token);
+    });
+  }
+
+  function logout() {
+    window.localStorage.removeItem("ai-learning-token");
+    setToken("");
+    setUserEmail("");
+    setNotes([]);
+    setSelectedId(0);
+    setDraft(emptyDraft);
+    setSummary(null);
+    setAiResult("");
+  }
+
   function selectNote(note: LearningNote) {
     setSelectedId(note.id);
     setDraft(note);
-    setAiResult(buildSummary(note));
+    setAiResult("");
   }
 
-  function createNote() {
-    const next: LearningNote = {
-      id: Date.now(),
-      title: "새 노트",
-      content: "",
-      status: "draft",
-      tags: [],
-      updatedAt: new Date().toISOString().slice(0, 10)
-    };
-    setNotes((current) => [next, ...current]);
-    selectNote(next);
+  async function addNote() {
+    await run(async () => {
+      const note = await createNote(token, {
+        title: "새 노트",
+        content: " ",
+        status: "draft",
+        tags: []
+      });
+      setSelectedId(note.id);
+      setDraft(note);
+      await loadWorkspace(token);
+    });
   }
 
-  function saveNote() {
-    setNotes((current) => current.map((note) => (note.id === draft.id ? draft : note)));
+  async function saveNote() {
+    if (!draft.id) return;
+    await run(async () => {
+      const saved = await updateNote(token, draft.id, {
+        title: draft.title || "새 노트",
+        content: draft.content || " ",
+        status: draft.status,
+        tags: draft.tags
+      });
+      setDraft(saved);
+      await loadWorkspace(token);
+    });
   }
 
-  function deleteNote() {
-    const remaining = notes.filter((note) => note.id !== selectedId);
-    setNotes(remaining);
-    const next = remaining[0];
-    if (next) {
-      selectNote(next);
-    }
+  async function removeNote() {
+    if (!selectedId) return;
+    await run(async () => {
+      await deleteNote(token, selectedId);
+      setSelectedId(0);
+      setDraft(emptyDraft);
+      await loadWorkspace(token);
+    });
+  }
+
+  async function refreshSearch(value: string) {
+    setQuery(value);
+    if (!token) return;
+    await run(async () => {
+      const nextNotes = await listNotes(token, value);
+      setNotes(nextNotes);
+    });
+  }
+
+  async function createAiOutput(kind: "summary" | "questions") {
+    if (!selectedId) return;
+    await run(async () => {
+      const output =
+        kind === "summary"
+          ? await summarizeNote(token, selectedId)
+          : await createQuestions(token, selectedId);
+      setAiResult(output.content);
+      const nextSummary = await dashboardSummary(token);
+      setSummary(nextSummary);
+    });
+  }
+
+  if (!token) {
+    return (
+      <main className="auth-page">
+        <form className="auth-panel" onSubmit={submitAuth}>
+          <div className="brand auth-brand">
+            <FileText size={18} />
+            <span>AI Learning</span>
+          </div>
+          <label className="field">
+            <span>Email</span>
+            <input value={email} onChange={(event) => setEmail(event.target.value)} />
+          </label>
+          <label className="field">
+            <span>Password</span>
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+          </label>
+          <button className="primary-button" disabled={busy}>
+            로그인
+          </button>
+          {message ? <p className="message">{message}</p> : null}
+        </form>
+      </main>
+    );
   }
 
   return (
@@ -82,12 +227,12 @@ export default function Home() {
           <input
             aria-label="검색"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => void refreshSearch(event.target.value)}
             placeholder="검색"
           />
         </div>
 
-        <button className="primary-button" onClick={createNote}>
+        <button className="primary-button" onClick={() => void addNote()} disabled={busy}>
           <Plus size={16} />
           <span>새 노트</span>
         </button>
@@ -103,13 +248,14 @@ export default function Home() {
               <span className="note-meta">{note.updatedAt}</span>
             </button>
           ))}
+          {filteredNotes.length === 0 ? <span className="empty-text">노트 없음</span> : null}
         </nav>
       </aside>
 
       <section className="content">
         <header className="topbar">
           <div className="stats">
-            {stats.map((stat) => (
+            {statItems.map((stat) => (
               <div className="stat" key={stat.label}>
                 <span>{stat.label}</span>
                 <strong>{stat.value}</strong>
@@ -118,13 +264,18 @@ export default function Home() {
           </div>
 
           <div className="actions">
-            <button className="icon-button" onClick={saveNote} aria-label="저장">
+            <span className="user-email">{userEmail}</span>
+            <button className="icon-button" onClick={() => void saveNote()} aria-label="저장" disabled={busy}>
               <Save size={16} />
               <span>저장</span>
             </button>
-            <button className="icon-button danger" onClick={deleteNote} aria-label="삭제">
+            <button className="icon-button danger" onClick={() => void removeNote()} aria-label="삭제" disabled={busy}>
               <Trash2 size={16} />
               <span>삭제</span>
+            </button>
+            <button className="icon-button" onClick={logout} aria-label="로그아웃">
+              <LogOut size={16} />
+              <span>나가기</span>
             </button>
           </div>
         </header>
@@ -140,6 +291,7 @@ export default function Home() {
               <span>제목</span>
               <input
                 value={draft.title}
+                disabled={!draft.id}
                 onChange={(event) => setDraft({ ...draft, title: event.target.value })}
               />
             </label>
@@ -148,6 +300,7 @@ export default function Home() {
               <span>본문</span>
               <textarea
                 value={draft.content}
+                disabled={!draft.id}
                 onChange={(event) => setDraft({ ...draft, content: event.target.value })}
               />
             </label>
@@ -156,6 +309,7 @@ export default function Home() {
               <span>태그</span>
               <input
                 value={draft.tags.join(", ")}
+                disabled={!draft.id}
                 onChange={(event) =>
                   setDraft({
                     ...draft,
@@ -176,15 +330,19 @@ export default function Home() {
             </div>
 
             <div className="ai-actions">
-              <button onClick={() => setAiResult(buildSummary(draft))}>요약</button>
-              <button onClick={() => setAiResult(buildQuestions(draft).join("\n"))}>질문 생성</button>
+              <button onClick={() => void createAiOutput("summary")} disabled={!selectedId || busy}>
+                요약
+              </button>
+              <button onClick={() => void createAiOutput("questions")} disabled={!selectedId || busy}>
+                질문 생성
+              </button>
             </div>
 
-            <pre className="ai-result">{aiResult}</pre>
+            <pre className="ai-result">{aiResult || "결과 없음"}</pre>
+            {message ? <p className="message">{message}</p> : null}
           </section>
         </div>
       </section>
     </main>
   );
 }
-
